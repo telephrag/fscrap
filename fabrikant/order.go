@@ -23,9 +23,10 @@ func NewOrderFromInnerGridSelection(s *goquery.Selection) *Order {
 	inner := s.Find(".marketplace-unit")
 
 	// uid and type
-	uidFull := inner.Find(".marketplace-unit__info__name").Text()
-	uidSplit := strings.Split(uidFull, "№")
-	if len(uidSplit) < 1 || len(uidSplit) > 2 {
+	uidFull := inner.Find(".marketplace-unit__info__name")
+	uidData := uidFull.Nodes[0].FirstChild.NextSibling.FirstChild.Data
+	uidSplit := strings.Split(uidData, "№")
+	if len(uidSplit) < 2 || len(uidSplit) > 2 {
 		log.Fatalf("Failed to parse number and type of order: \"%s\"\n", uidFull)
 	}
 	o.Type, o.UID = strings.TrimSpace(uidSplit[0]), strings.TrimSpace(uidSplit[1])

@@ -97,5 +97,8 @@ func parseTimestamp(ts string) (time.Time, error) {
 		return time.Time{}, fmt.Errorf("no month token was found in timestamp string's split: \"%s\"", ts)
 	}
 
-	return time.Parse("2/01/2006 15:04", sp[0]+"/"+m+"/"+sp[2]+" "+sp[3])
+	return time.ParseInLocation(
+		"2/01/2006 15:04", sp[0]+"/"+m+"/"+sp[2]+" "+sp[3],
+		time.FixedZone("UTC", 10800),
+	)
 }

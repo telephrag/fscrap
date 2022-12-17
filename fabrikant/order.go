@@ -54,6 +54,7 @@ func NewOrderFromInnerGridSelection(s *goquery.Selection) (*Order, error) {
 	pubDate := inner.Find(".marketplace-unit__state__wrap").
 		Find(".marketplace-unit__state").First().Children()
 
+	// 3 children are text sign, date and time
 	if len(pubDate.Nodes) < 3 {
 		return nil, fmt.Errorf("%w: \"%s\"", ErrDateTime, pubDate.Text())
 	}
@@ -66,6 +67,9 @@ func NewOrderFromInnerGridSelection(s *goquery.Selection) (*Order, error) {
 	return o, nil
 }
 
+// According to tests publication and other timestamps are static and are not deduced
+// on client from UTC (or other common format) timestamps received from the server.
+// This does not apply to the clock at the top of the page.
 func parseTimestamp(ts string) (time.Time, error) {
 
 	// parsing month token

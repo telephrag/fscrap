@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"softbuilding/config"
 	"softbuilding/fabrikant"
 
@@ -18,24 +19,26 @@ func init() {
 func main() {
 	// doesn' work properly if placed inside init() for some reason
 
-	query := flag.String("q", "поставка", "Query to search orders with. No spaces allowed yet.")
+	query := flag.String("q", "", "Query to search orders with. Use 'your query here' for multiword query.")
 	withUID := flag.Bool("uid", false, "Set to print uids of orders.")
 	withType := flag.Bool("type", false, "Set to print types of orders.")
 	withTitle := flag.Bool("title", false, "Set to print titles of orders.")
 	withTimestamp := flag.Bool("timestamp", false, "Set to print publication timestamps of orders.")
 	flag.Parse()
 
-	fmt.Println(*query)
-	fmt.Println(*withUID)
-	fmt.Println(*withType)
-	fmt.Println(*withTitle)
-	fmt.Println(*withTimestamp)
+	// fmt.Println(*query)
+	// fmt.Println(*withUID)
+	// fmt.Println(*withType)
+	// fmt.Println(*withTitle)
+	// fmt.Println(*withTimestamp)
 
-	// vary values for page, on_page, query etc.
+	queryEscaped := url.QueryEscape(*query)
+
 	url := fmt.Sprintf(
-		"https://www.fabrikant.ru/trades/procedure/search/?type=0&procedure_stage=0&currency=0&date_type=date_publication&ensure=all&count_on_page=40&order_direction=1&query=%s&page=1",
-		*query,
+		"https://www.fabrikant.ru/trades/procedure/search/?type=0&procedure_stage=0&price_from=&price_to=&currency=0&date_type=date_publication&date_from=&date_to=&ensure=all&count_on_page=40&order_direction=1&type_hash=1561441166&query=%s",
+		queryEscaped,
 	)
+	fmt.Println(url)
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; rv:102.0) Gecko/20100101 Firefox/102.0")
 	req.Header.Set("Accept-Language", "en-US,en;q=0.5")

@@ -1,12 +1,21 @@
 package fabrikant
 
 import (
+	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+)
+
+var ( // errors
+	ErrIDAndTypeParse = errors.New("failed to parse id and type")
+	ErrURLParse       = errors.New("failed to parse url")
+	ErrDateTime       = errors.New("failed to parse date and time, not enough nodes")
+
+	ErrTimestampNotEnoughTokens = errors.New("not enough tokens in timestamp string's split")
+	ErrTimestampNoMonth         = errors.New("no month token")
 )
 
 type Order struct {
@@ -17,7 +26,7 @@ type Order struct {
 	PublicationTimestamp time.Time
 }
 
-func NewOrderFromInnerGridSelection(s *goquery.Selection) *Order {
+func NewOrderFromInnerGridSelection(s *goquery.Selection) (*Order, error) {
 	o := &Order{}
 
 	inner := s.Find(".marketplace-unit")
@@ -27,7 +36,7 @@ func NewOrderFromInnerGridSelection(s *goquery.Selection) *Order {
 	uidData := uidFull.Nodes[0].FirstChild.NextSibling.FirstChild.Data
 	uidSplit := strings.Split(uidData, "№")
 	if len(uidSplit) < 2 || len(uidSplit) > 2 {
-		log.Fatalf("Failed to parse number and type of order: \"%s\"\n", uidFull)
+		return nil, fmt.Errorf("%w: \"%s\"", ErrIDAndTypeParse, uidData)
 	}
 	o.Type, o.UID = strings.TrimSpace(uidSplit[0]), strings.TrimSpace(uidSplit[1])
 
@@ -38,7 +47,7 @@ func NewOrderFromInnerGridSelection(s *goquery.Selection) *Order {
 	o.Title = strings.TrimSpace(title.Text())
 	var ok bool
 	if o.URL, ok = title.Attr("href"); !ok {
-		log.Fatalf("Failed to parse URL of order: \"%s\"\n", title.Text())
+		return nil, fmt.Errorf("%w: \"%s\"", ErrURLParse, title.Text())
 	}
 
 	// publication time
@@ -46,26 +55,23 @@ func NewOrderFromInnerGridSelection(s *goquery.Selection) *Order {
 		Find(".marketplace-unit__state").First().Children()
 
 	if len(pubDate.Nodes) < 3 {
-		log.Fatalf("Failed to parse date and time, not enough nodes: \"%s\"\n", pubDate.Text())
+		return nil, fmt.Errorf("%w: \"%s\"", ErrDateTime, pubDate.Text())
 	}
 	dt := pubDate.Nodes[1].FirstChild.Data + " " + pubDate.Nodes[2].FirstChild.Data
 	var err error
 	if o.PublicationTimestamp, err = parseTimestamp(dt); err != nil {
-		log.Fatal(err)
+		return nil, fmt.Errorf("%w: \"%s\"", err, dt)
 	}
 
-	return o
+	return o, nil
 }
 
 func parseTimestamp(ts string) (time.Time, error) {
-	if len(ts) < 10 { // 10 is minimum length of timestamp on fabrikant.ru
-		return time.Time{}, fmt.Errorf("too short timestamp: \"%s\"", ts)
-	}
 
 	// parsing month token
 	sp := strings.Split(ts, " ")
 	if len(sp) != 4 {
-		return time.Time{}, fmt.Errorf("not enough tokens in timestamp string's split: \"%s\"", ts)
+		return time.Time{}, ErrTimestampNotEnoughTokens
 	}
 	m := sp[1]
 
@@ -95,7 +101,7 @@ func parseTimestamp(ts string) (time.Time, error) {
 	case m == "дек":
 		m = "12"
 	default:
-		return time.Time{}, fmt.Errorf("no month token was found in timestamp string's split: \"%s\"", ts)
+		return time.Time{}, ErrTimestampNoMonth
 	}
 
 	return time.ParseInLocation(

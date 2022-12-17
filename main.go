@@ -38,7 +38,6 @@ func main() {
 		"https://www.fabrikant.ru/trades/procedure/search/?type=0&procedure_stage=0&price_from=&price_to=&currency=0&date_type=date_publication&date_from=&date_to=&ensure=all&count_on_page=40&order_direction=1&type_hash=1561441166&query=%s",
 		queryEscaped,
 	)
-	fmt.Println(url)
 	req, _ := http.NewRequest("GET", url, nil)
 	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; rv:102.0) Gecko/20100101 Firefox/102.0")
 	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
@@ -65,7 +64,11 @@ func main() {
 	doc.Find(".marketplace-list").
 		Find(".innerGrid").
 		Each(func(i int, s *goquery.Selection) {
-			orders = append(orders, fabrikant.NewOrderFromInnerGridSelection(s))
+			o, err := fabrikant.NewOrderFromInnerGridSelection(s)
+			if err != nil {
+				log.Fatal(err)
+			}
+			orders = append(orders, o)
 		})
 
 	printUid := func(o *fabrikant.Order) {
